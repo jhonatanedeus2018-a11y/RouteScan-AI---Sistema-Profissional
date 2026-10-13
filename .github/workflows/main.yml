@@ -1,8 +1,9 @@
-
 name: Build RouteScan AI APK
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -10,7 +11,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Baixar projeto
         uses: actions/checkout@v4
@@ -19,17 +19,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Configurar Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
+          cache: gradle
 
       - name: Verificar Android SDK
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
-          test -d "$ANDROID_HOME" || exit 1
+          test -d "$ANDROID_HOME"
           yes | sdkmanager --licenses || true
 
       - name: Instalar dependências
@@ -38,19 +40,28 @@ jobs:
       - name: Gerar versão web
         run: npm run build
 
-      - name: Configurar Capacitor
+      - name: Preparar plataforma Android usando a configuração existente
         run: |
-          npm install --no-save @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
-          npx cap init "RouteScan AI" "com.routescan.ai" --web-dir dist
+          npm install --no-save @capacitor/core@^7 @capacitor/cli@^7 @capacitor/android@^7
           npx cap add android
-          npx cap copy android
+          npx cap sync android
 
-      - name: Compilar APK
+      - name: Compilar APK de depuração
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
-      - name: Disponibilizar APK
+      - name: Validar APK gerado
+        run: |
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          file "$APK"
+          unzip -t "$APK"
+          ls -lh "$APK"
+
+      - name: Disponibilizar APK direto
         uses: actions/upload-artifact@v4
         with:
-          name: RouteScan-AI-APK
+          name: RouteScan-AI-debug-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
