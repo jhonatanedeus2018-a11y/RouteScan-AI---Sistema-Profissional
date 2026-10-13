@@ -29,6 +29,28 @@ const App: React.FC = () => {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({ nome: '', email: '', password: '' });
+  const [geminiApiKey, setGeminiApiKey] = useState(() => {
+    try { return localStorage.getItem('routescan_gemini_api_key') || ''; } catch { return ''; }
+  });
+  const [apiKeySaved, setApiKeySaved] = useState(false);
+
+  const saveGeminiApiKey = () => {
+    const key = geminiApiKey.trim();
+    if (!key) {
+      setError('Cole sua chave da API Gemini antes de salvar.');
+      setApiKeySaved(false);
+      return;
+    }
+    try {
+      localStorage.setItem('routescan_gemini_api_key', key);
+      setGeminiApiKey(key);
+      setApiKeySaved(true);
+      setError('');
+    } catch {
+      setError('Não foi possível salvar a chave neste aparelho.');
+      setApiKeySaved(false);
+    }
+  };
 
   const isConfigured = authService.isConfigured();
 
@@ -248,6 +270,25 @@ const App: React.FC = () => {
             </button>
           </div>
         )}
+
+        <div className="mb-6 rounded-3xl border border-blue-100 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <Key size={18} className="text-blue-600" />
+            <h4 className="font-black text-slate-800">Chave da IA (Gemini)</h4>
+          </div>
+          <p className="mb-3 text-xs leading-relaxed text-slate-500">Necessária para analisar os prints. A chave fica salva somente neste aparelho e não é enviada ao nosso banco de usuários.</p>
+          <input
+            type="password"
+            value={geminiApiKey}
+            onChange={e => { setGeminiApiKey(e.target.value); setApiKeySaved(false); }}
+            placeholder="Cole aqui sua chave da API Gemini"
+            autoComplete="off"
+            className="mb-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium outline-none focus:ring-4 focus:ring-blue-500/10"
+          />
+          <button type="button" onClick={saveGeminiApiKey} className="w-full rounded-2xl bg-blue-600 px-5 py-4 text-xs font-black uppercase tracking-widest text-white transition hover:bg-blue-700">
+            {apiKeySaved ? 'Chave salva neste aparelho' : 'Salvar chave da IA'}
+          </button>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className={`p-8 rounded-[2.5rem] border transition-all ${user.plano === 'pro' ? 'bg-blue-600 border-blue-500 text-white shadow-2xl shadow-blue-200' : 'bg-white border-slate-100 text-slate-800 shadow-sm'}`}>
