@@ -38,25 +38,37 @@ jobs:
       - name: Gerar versão web
         run: npm run build
 
-      - name: Preparar plataforma Android usando a configuração existente
+      - name: Preparar plataforma Android
         run: |
           npm install --no-save @capacitor/core@^7 @capacitor/cli@^7 @capacitor/android@^7
           npx cap add android
           npx cap sync android
+          echo "Configuração Android gerada:"
+          cat android/variables.gradle
+          # Compatibilidade explícita com aparelhos Android atuais e anteriores.
+          sed -i 's/minSdkVersion = .*/minSdkVersion = 23/' android/variables.gradle
+          sed -i 's/targetSdkVersion = .*/targetSdkVersion = 35/' android/variables.gradle
+          echo "Configuração Android aplicada:"
+          cat android/variables.gradle
 
-      - name: Compilar APK de depuração
+      - name: Compilar APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
-      - name: Validar APK gerado
+      - name: Validar APK, assinatura e requisitos
         run: |
+          set -e
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
           file "$APK"
           unzip -t "$APK"
+          apksigner verify --verbose --print-certs "$APK"
+          apkanalyzer manifest application-id "$APK"
+          apkanalyzer manifest min-sdk "$APK"
+          apkanalyzer manifest target-sdk "$APK"
           ls -lh "$APK"
 
-      - name: Disponibilizar APK direto
+      - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
           name: RouteScan-AI-debug-APK
