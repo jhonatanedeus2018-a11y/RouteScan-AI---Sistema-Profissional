@@ -3,8 +3,13 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { DeliveryStop, ExtractionResult } from "../types";
 
 export const extractAddressesFromImage = async (base64DataUrl: string): Promise<ExtractionResult> => {
-  // Always use process.env.API_KEY directly as per guidelines
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // In APK builds Vite may not have a build-time key. Prefer the user's device-local key.
+  const savedKey = typeof localStorage !== "undefined" ? localStorage.getItem("routescan_gemini_api_key") : null;
+  const apiKey = (savedKey || process.env.API_KEY || "").trim();
+  if (!apiKey) {
+    throw new Error("Configure sua chave da API Gemini no campo Chave da IA, na tela principal do aplicativo.");
+  }
+  const ai = new GoogleGenAI({ apiKey });
   
   // Extração segura do tipo MIME e dos dados base64
   const matches = base64DataUrl.match(/^data:([^;]+);base64,(.+)$/);
@@ -40,7 +45,7 @@ export const extractAddressesFromImage = async (base64DataUrl: string): Promise<
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: [
         {
           parts: [
@@ -62,7 +67,8 @@ export const extractAddressesFromImage = async (base64DataUrl: string): Promise<
       },
     });
 
-    const jsonStr = response.text.trim();
+    const jsonStr = (response.text || "").trim();
+    if (!jsonStr) throw new Error("A IA não retornou uma resposta. Verifique a chave da API Gemini e tente novamente.");
     const rawParsed = JSON.parse(jsonStr) as { stops: any[] };
     
     if (!rawParsed.stops || !Array.isArray(rawParsed.stops)) {
@@ -83,6 +89,14 @@ export const extractAddressesFromImage = async (base64DataUrl: string): Promise<
     return { stops: processedStops };
   } catch (error) {
     console.error("Erro na API Gemini:", error);
-    throw new Error("Falha ao processar a imagem. Verifique sua conexão ou tente um print mais nítido.");
+    if (error instanceof Error && error.message.startsWith("Configure sua chave")) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    if (/api.?key|unauthenticated|permission denied|403|401/i.test(message)) {
+      throw new Error("A chave da API Gemini está ausente, inválida ou sem permissão. Confira a chave salva no aplicativo.");
+    }
+    if (/quota|resource.?exhausted|429/i.test(message)) {
+      throw new Error("A cota da API Gemini foi atingida. Verifique os limites da sua chave e tente mais tarde.");
+    }
+    throw new Error("Não foi possível analisar a imagem. Detalhe técnico: " + message.slice(0, 220));
   }
 };
