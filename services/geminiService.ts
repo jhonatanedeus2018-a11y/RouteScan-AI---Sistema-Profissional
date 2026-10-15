@@ -27,9 +27,9 @@ export const extractAddressesFromImage = async (base64DataUrl: string): Promise<
         items: {
           type: Type.OBJECT,
           properties: {
-            stopNumber: { 
-              type: Type.STRING, 
-              description: "O número identificador da parada ou do pacote. Procure por números grandes ou IDs de rastreio." 
+            stopNumber: {
+              type: Type.STRING,
+              description: "Identificador EXATO do pacote/parada impresso no mesmo cartão/linha que contém este endereço. Copie os caracteres visíveis sem renumerar nem deduzir."
             },
             address: { type: Type.STRING, description: "O endereço completo (rua e número)." },
             cep: { type: Type.STRING, description: "O CEP (formato 00000-000)." },
@@ -61,8 +61,10 @@ export const extractAddressesFromImage = async (base64DataUrl: string): Promise<
         },
       ],
       config: {
+        systemInstruction: "Você é um sistema de OCR especializado em logística de entregas. Extraia os dados visíveis com rigor. Cada cartão/linha da tela representa uma entrega independente. O stopNumber deve ser copiado exatamente do identificador do pacote/parada que pertence ao mesmo cartão/linha do endereço. Nunca use a posição da linha, o contador total, o índice do array ou números de outra entrega como stopNumber. Não associe campos entre linhas. Se houver vários cartões para o mesmo endereço, preserve cada identificador próprio. Não invente dígitos; se não for possível ler com segurança o identificador ou o endereço, não inclua aquela linha. Preserve os dígitos e caracteres exatamente como aparecem.",
         responseMimeType: "application/json",
         responseSchema: EXTRACTION_SCHEMA,
+        temperature: 0.1,
       },
     });
 
