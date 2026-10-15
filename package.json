@@ -16,7 +16,9 @@
     "lucide-react": "^0.562.0",
     "@supabase/supabase-js": "^2.57.4",
     "@capacitor/core": "^7.4.3",
-    "@capacitor/android": "^7.4.3"
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/filesystem": "^7.1.4",
+    "@capacitor/share": "^7.0.2"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
