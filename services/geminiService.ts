@@ -3,11 +3,10 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { DeliveryStop, ExtractionResult } from "../types";
 
 export const extractAddressesFromImage = async (base64DataUrl: string): Promise<ExtractionResult> => {
-  // In APK builds Vite may not have a build-time key. Prefer the user's device-local key.
-  const savedKey = typeof localStorage !== "undefined" ? localStorage.getItem("routescan_gemini_api_key") : null;
-  const apiKey = (savedKey || process.env.API_KEY || "").trim();
+  // The key is injected at build time by GitHub Actions; it is not requested from each user.
+  const apiKey = (process.env.API_KEY || process.env.GEMINI_API_KEY || "").trim();
   if (!apiKey) {
-    throw new Error("Configure sua chave da API Gemini no campo Chave da IA, na tela principal do aplicativo.");
+    throw new Error("A chave Gemini não foi configurada nesta versão do aplicativo. O administrador precisa cadastrar GEMINI_API_KEY nos Secrets do GitHub e gerar um novo APK.");
   }
   const ai = new GoogleGenAI({ apiKey });
   
@@ -89,7 +88,7 @@ export const extractAddressesFromImage = async (base64DataUrl: string): Promise<
     return { stops: processedStops };
   } catch (error) {
     console.error("Erro na API Gemini:", error);
-    if (error instanceof Error && error.message.startsWith("Configure sua chave")) throw error;
+    if (error instanceof Error && error.message.startsWith("A chave Gemini não foi configurada")) throw error;
     const message = error instanceof Error ? error.message : String(error);
     if (/api.?key|unauthenticated|permission denied|403|401/i.test(message)) {
       throw new Error("A chave da API Gemini está ausente, inválida ou sem permissão. Confira a chave salva no aplicativo.");
