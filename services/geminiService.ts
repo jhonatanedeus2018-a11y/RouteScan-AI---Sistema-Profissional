@@ -55,7 +55,7 @@ export const extractAddressesFromImage = async (base64DataUrl: string): Promise<
               },
             },
             {
-              text: "Você é um assistente de logística. Analise este print de um aplicativo de entregas. Extraia todos os pacotes/paradas visíveis. Ignore propagandas, mapas ou menus do sistema Android. Foque em: Número do Pacote/Parada, Endereço, CEP e Cidade. Retorne estritamente o JSON solicitado.",
+              text: "Você é um extrator visual de dados de entregas e deve priorizar a correspondência exata entre pacote e endereço. Leia o print na ordem visual, de cima para baixo. Cada cartão/linha de entrega é um registro independente. Para cada registro, extraia o número/ID do pacote que aparece DENTRO DO MESMO cartão/linha e associe somente ao endereço, CEP e cidade que aparecem nesse mesmo cartão/linha. NUNCA associe um número a um endereço de outra linha, nunca renumere, nunca use o índice da lista como número do pacote e nunca deduza um número que não esteja legível. Se houver um número da parada e um código de rastreio distintos, use o identificador explícito do pacote/parada mostrado junto daquele endereço; não confunda números da barra do sistema, contadores ou números de outras linhas. Preserve os caracteres e dígitos exatamente como aparecem. Não junte dados de cartões diferentes. Se o número ou endereço de uma linha não estiver legível com segurança, não invente nem faça associação aproximada: omita essa linha do resultado. Não descarte registros apenas porque endereços se repetem; vários pacotes podem ter o mesmo endereço, mas cada um precisa manter o próprio identificador visível. Ignore anúncios, mapas e menus do Android. Retorne apenas o JSON no formato solicitado.",
             },
           ],
         },
@@ -75,7 +75,7 @@ export const extractAddressesFromImage = async (base64DataUrl: string): Promise<
     }
 
     // Process raw AI data and add necessary fields for DeliveryStop type
-    const processedStops: DeliveryStop[] = rawParsed.stops.map((stop, index) => ({
+    const processedStops: DeliveryStop[] = rawParsed.stops.filter((stop) => stop && stop.stopNumber != null && String(stop.stopNumber).trim() !== "" && typeof stop.address === "string" && stop.address.trim() !== "").map((stop, index) => ({
       ...stop,
       id: `stop-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
       stopNumber: String(stop.stopNumber).trim(),
