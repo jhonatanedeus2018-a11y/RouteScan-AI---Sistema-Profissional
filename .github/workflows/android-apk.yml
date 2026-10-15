@@ -30,6 +30,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # A chave é fornecida somente pelo Secret GEMINI_API_KEY durante o build.
       - name: Build web app
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
